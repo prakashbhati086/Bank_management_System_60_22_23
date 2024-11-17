@@ -1,36 +1,49 @@
 import java.util.*;
-import java.io.*;
 
 class BankAccount {
-    private int balance;
+    private double balance;
     private List<String> transactionHistory = new ArrayList<>();
     private String customerName;
     private String customerId;
 
     public BankAccount(String cname, String cid) {
-        customerName = cname;
-        customerId = cid;
+        this.customerName = cname;
+        this.customerId = cid;
+        this.balance = 0.0;
+        transactionHistory.add("Account created. Initial balance: $0.00");
     }
 
-    public void deposit(int amount) {
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void deposit(double amount) {
         if (amount > 0) {
             balance += amount;
-            transactionHistory.add("Deposited: " + amount);
-            System.out.println("Deposit successful! Your new balance is: " + balance);
+            transactionHistory.add("Deposited: $" + amount);
+            System.out.println("Deposit successful! Your new balance is: $" + balance);
+        } else {
+            System.out.println("Invalid deposit amount.");
         }
     }
 
-    public void withdraw(int amount) {
-        if (amount > balance) {
+    public void withdraw(double amount) {
+        if (amount <= 0) {
+            System.out.println("Invalid withdrawal amount.");
+        } else if (amount > balance) {
             System.out.println("Insufficient balance!");
         } else {
             balance -= amount;
-            transactionHistory.add("Withdrawn: " + amount);
-            System.out.println("Withdrawal successful! Your new balance is: " + balance);
+            transactionHistory.add("Withdrawn: $" + amount);
+            System.out.println("Withdrawal successful! Your new balance is: $" + balance);
         }
     }
 
-    public int getBalance() {
+    public double getBalance() {
         return balance;
     }
 
@@ -46,46 +59,43 @@ class BankAccount {
     }
 
     public void calculateInterest(double rate) {
-        double interest = balance * rate / 100;
-        balance += interest;
-        transactionHistory.add("Interest added: " + interest);
-        System.out.println("Interest added at " + rate + "%. New balance is: " + balance);
-    }
-
-    public void saveAccountData() {
-        try (FileWriter writer = new FileWriter(customerId + ".txt")) {
-            writer.write("Customer Name: " + customerName + "\n");
-            writer.write("Customer ID: " + customerId + "\n");
-            writer.write("Balance: " + balance + "\n");
-            writer.write("Transaction History: " + transactionHistory + "\n");
-            System.out.println("Account data saved.");
-        } catch (IOException e) {
-            System.out.println("An error occurred while saving account data.");
+        if (rate <= 0) {
+            System.out.println("Invalid interest rate.");
+        } else {
+            double interest = balance * (rate / 100);
+            balance += interest;
+            transactionHistory.add("Interest added: $" + interest);
+            System.out.println("Interest added at " + rate + "%. New balance is: $" + balance);
         }
     }
 
-    public void loadAccountData() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(customerId + ".txt"))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+    public void transfer(String recipientId, double amount) {
+        if (BankingSystem.accountExists(recipientId)) {
+            if (amount > 0 && amount <= balance) {
+                BankAccount recipient = BankingSystem.getAccount(recipientId);
+                this.withdraw(amount);
+                recipient.deposit(amount);
+                transactionHistory.add("Transferred: $" + amount + " to ID " + recipientId);
+                System.out.println("Successfully transferred $" + amount + " to " + recipient.getCustomerName());
+            } else {
+                System.out.println("Insufficient balance or invalid amount.");
             }
-        } catch (IOException e) {
-            System.out.println("An error occurred while loading account data.");
+        } else {
+            System.out.println("Recipient account not found.");
         }
     }
 
     public void showMenu() {
         Scanner sc = new Scanner(System.in);
         while (true) {
-            System.out.println("\n1: Check Balance");
+            System.out.println("\n--- Account Menu for " + customerName + " ---");
+            System.out.println("1: Check Balance");
             System.out.println("2: Deposit");
             System.out.println("3: Withdraw");
             System.out.println("4: View Transaction History");
             System.out.println("5: Calculate Interest");
-            System.out.println("6: Save Account Data");
-            System.out.println("7: Load Account Data");
-            System.out.println("8: Exit");
+            System.out.println("6: Transfer Money");
+            System.out.println("7: Exit");
 
             try {
                 System.out.print("Enter your option: ");
@@ -93,35 +103,36 @@ class BankAccount {
 
                 switch (option) {
                     case 1:
-                        System.out.println("Balance = " + balance);
+                        System.out.println("Your balance is: $" + balance);
                         break;
                     case 2:
-                        System.out.println("Enter amount to deposit: ");
-                        int amount = sc.nextInt();
-                        deposit(amount);
+                        System.out.print("Enter amount to deposit: ");
+                        double depositAmount = sc.nextDouble();
+                        deposit(depositAmount);
                         break;
                     case 3:
-                        System.out.println("Enter amount to withdraw: ");
-                        int amount2 = sc.nextInt();
-                        withdraw(amount2);
+                        System.out.print("Enter amount to withdraw: ");
+                        double withdrawAmount = sc.nextDouble();
+                        withdraw(withdrawAmount);
                         break;
                     case 4:
                         getTransactionHistory();
                         break;
                     case 5:
-                        System.out.println("Enter interest rate: ");
+                        System.out.print("Enter interest rate: ");
                         double rate = sc.nextDouble();
                         calculateInterest(rate);
                         break;
                     case 6:
-                        saveAccountData();
+                        System.out.print("Enter recipient's customer ID: ");
+                        String recipientId = sc.next();
+                        System.out.print("Enter amount to transfer: ");
+                        double transferAmount = sc.nextDouble();
+                        transfer(recipientId, transferAmount);
                         break;
                     case 7:
-                        loadAccountData();
-                        break;
-                    case 8:
                         System.out.println("Thank you for using our bank.");
-                        System.exit(0);
+                        return;
                     default:
                         System.out.println("Invalid Option! Please try again.");
                         break;
